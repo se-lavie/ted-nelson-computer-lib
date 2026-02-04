@@ -445,6 +445,7 @@ function save(){ localStorage.setItem('nelson_state', JSON.stringify({xp:state.x
 const SCR_IDS = { title:'titleScr', map:'mapScr', story:'storyScr', notebook:'nbScr', achievements:'achScr', final:'finScr' };
 
 function go(screen, nodeId){
+  window.scrollTo({top:0, behavior:'smooth'});
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   if(screen==='story' && nodeId){
     document.getElementById('storyScr').classList.add('on');
