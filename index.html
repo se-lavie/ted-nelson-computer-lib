@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Computer Lib / Dream Machines — Ted Nelson's Journey</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d1117;--surf:#161b22;--over:#1c2128;--bdr:#30363d;
+  --txt:#e6edf3;--dim:#8b949e;--ghost:#484f58;
+  --acc:#58a6ff;--acc-bg:rgba(88,166,255,.12);
+  --c1:#3fb950;--c2:#f85149;--c3:#58a6ff;--c4:#d29922;--c5:#bc8cff;--c6:#f778ba;--c7:#7c5cfc;
+  --rad:12px;--t:.28s ease
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;line-height:1.7;-webkit-font-smoothing:antialiased}
+
+/* ── HUD ── */
+.hud{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(13,17,23,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);display:none;align-items:center;justify-content:space-between;padding:0 20px;z-index:100;gap:12px}
+.hud.on{display:flex}
+.hud-left{display:flex;align-items:center;gap:16px;flex-shrink:0}
+.xp-badge{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600;color:var(--acc);display:flex;align-items:center;gap:6px}
+.xp-badge .star{color:#d29922}
+.prog-wrap{display:flex;align-items:center;gap:8px}
+.prog-bar{width:100px;height:5px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--c1),var(--c5),var(--c7));border-radius:3px;transition:width .5s ease}
+.prog-txt{font-size:11px;color:var(--ghost)}
+.hud-nav{display:flex;gap:6px;margin-left:auto}
+.hb{background:var(--surf);border:1px solid var(--bdr);color:var(--dim);padding:5px 13px;border-radius:6px;cursor:pointer;font-size:12px;transition:var(--t);font-family:inherit}
+.hb:hover{border-color:var(--acc);color:var(--txt)}
+.hb.active{border-color:var(--acc);color:var(--acc);background:var(--acc-bg)}
+
+/* ── SCREENS ── */
+.scr{display:none;min-height:100vh;padding-top:52px}
+.scr.on{display:block}
+
+/* ── TITLE ── */
+#titleScr{padding-top:0;background:radial-gradient(ellipse at 50% 40%,#1a1f35 0%,var(--bg) 65%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 24px;position:relative}
+#titleScr .badge{font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--ghost);margin-bottom:14px}
+#titleScr h1{font-size:clamp(30px,5.5vw,52px);font-weight:800;line-height:1.15;margin-bottom:6px}
+#titleScr h1 .sl{color:var(--c5)}
+#titleScr .author{font-size:17px;color:var(--dim);margin-bottom:32px}
+#titleScr .div{width:50px;height:2px;background:var(--bdr);margin:0 auto 28px}
+#titleScr .intro{max-width:560px;color:var(--dim);font-size:15px;font-style:italic;margin-bottom:40px;line-height:1.8}
+.btn-go{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--c5),var(--c7));color:#fff;padding:14px 36px;border-radius:30px;border:none;font-size:16px;font-weight:600;cursor:pointer;transition:transform .2s,box-shadow .2s;font-family:inherit}
+.btn-go:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(188,140,255,.35)}
+.yr{position:absolute;bottom:32px;right:48px;font-size:80px;font-weight:800;color:var(--bdr);font-family:monospace;user-select:none;opacity:.6}
+@media(max-width:500px){.yr{display:none}}
+
+/* ── MAP ── */
+.map-hdr{padding:36px 20px 16px;text-align:center}
+.map-hdr h1{font-size:22px;margin-bottom:4px}
+.map-hdr p{color:var(--dim);font-size:13px}
+.ch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;padding:0 20px 48px;max-width:920px;margin:0 auto}
+.ch-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rad);padding:22px;cursor:pointer;transition:var(--t);position:relative;overflow:hidden}
+.ch-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.ch-card:hover{border-color:var(--card-c);transform:translateY(-2px);box-shadow:0 4px 18px rgba(0,0,0,.35)}
+.ch-card.done{border-color:rgba(63,185,80,.25)}
+.ch-card.done::before{height:4px}
+.ch-num{font-size:11px;color:var(--ghost);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px}
+.ch-title{font-size:17px;font-weight:600;margin-bottom:6px}
+.ch-desc{font-size:13px;color:var(--dim);line-height:1.5}
+.ch-status{margin-top:14px;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ghost)}
+.ch-status.done{color:var(--c1)}
+.sd{width:7px;height:7px;border-radius:50%;background:var(--ghost)}
+.sd.done{background:var(--c1)}
+
+/* ── STORY ── */
+.story-wrap{max-width:700px;margin:0 auto;padding:36px 24px 48px}
+.s-crumb{font-size:12px;color:var(--dim);margin-bottom:20px;display:flex;align-items:center;gap:6px}
+.s-crumb .sep{color:var(--ghost)}
+.s-crumb .cn{color:var(--dim)}
+.s-crumb .nn{color:var(--txt);font-weight:600}
+.s-title{font-size:26px;font-weight:700;margin-bottom:8px;line-height:1.3}
+.s-tag{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;padding:3px 10px;border-radius:20px;margin-bottom:20px;border:1px solid;font-weight:600}
+.s-narr{font-size:15px;color:var(--dim);margin-bottom:24px}
+.s-narr em{color:var(--txt);font-style:italic}
+.s-narr strong{color:var(--txt)}
+.s-quote{border-left:3px solid;background:var(--over);padding:14px 18px;border-radius:0 8px 8px 0;margin-bottom:22px}
+.s-quote p{font-style:italic;color:var(--txt);font-size:14px;margin-bottom:4px}
+.s-quote .att{font-size:11px;color:var(--dim);font-style:normal}
+.s-xp{display:inline-flex;align-items:center;gap:5px;background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.2);color:var(--c1);padding:3px 10px;border-radius:16px;font-size:12px;font-weight:600;margin-bottom:20px}
+.choices{display:flex;flex-direction:column;gap:9px}
+.ch-btn{background:var(--surf);border:1px solid var(--bdr);color:var(--txt);padding:14px 18px;border-radius:10px;cursor:pointer;text-align:left;font-size:14px;transition:var(--t);display:flex;align-items:center;gap:10px;font-family:inherit}
+.ch-btn:hover{border-color:var(--card-c);background:var(--over)}
+.ch-btn .arr{font-size:16px;transition:transform .2s}
+.ch-btn:hover .arr{transform:translateX(3px)}
+.back-btn{margin-top:28px;background:none;border:none;color:var(--ghost);font-size:12px;cursor:pointer;font-family:inherit;transition:color .2s}
+.back-btn:hover{color:var(--dim)}
+
+/* ── NOTEBOOK ── */
+.nb-wrap{max-width:780px;margin:0 auto;padding:36px 24px}
+.nb-hdr{margin-bottom:28px}
+.nb-hdr h1{font-size:22px;margin-bottom:4px}
+.nb-hdr p{color:var(--dim);font-size:13px}
+.nb-ch{margin-bottom:24px}
+.nb-ch-title{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ghost);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:7px}
+.nb-dot{width:9px;height:9px;border-radius:50%}
+.nb-item{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:12px 16px;margin-bottom:6px;transition:var(--t)}
+.nb-item.on{border-color:rgba(63,185,80,.25)}
+.nb-item.off{opacity:.35}
+.nb-name{font-weight:600;font-size:13px;margin-bottom:2px}
+.nb-sum{font-size:12px;color:var(--dim)}
+.nb-item.off .nb-name::after{content:' · locked';color:var(--ghost);font-weight:400}
+
+/* ── ACHIEVEMENTS ── */
+.ach-wrap{max-width:780px;margin:0 auto;padding:36px 24px}
+.ach-hdr{margin-bottom:24px}
+.ach-hdr h1{font-size:22px;margin-bottom:4px}
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.ach-card{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:18px;text-align:center;transition:var(--t)}
+.ach-card.on{border-color:var(--card-c);background:var(--over);box-shadow:0 0 12px var(--card-c-glow)}
+.ach-card.off .ach-ico{filter:grayscale(1);opacity:.35}
+.ach-ico{font-size:28px;margin-bottom:8px}
+.ach-nm{font-weight:600;font-size:13px;margin-bottom:3px}
+.ach-card.off .ach-nm{color:var(--ghost)}
+.ach-ds{font-size:11px;color:var(--dim)}
+
+/* ── POPUP ── */
+.popup{position:fixed;bottom:28px;right:28px;background:var(--surf);border:1px solid var(--acc);border-radius:12px;padding:18px 22px;max-width:300px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none}
+.popup.on{display:block;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.pop-lbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--acc);margin-bottom:6px}
+.pop-ico{font-size:24px;margin-bottom:4px}
+.pop-nm{font-weight:700;font-size:15px;margin-bottom:2px}
+.pop-ds{font-size:12px;color:var(--dim)}
+
+/* ── FINAL ── */
+.fin-wrap{max-width:760px;margin:0 auto;padding:56px 24px}
+.fin-hdr{text-align:center;margin-bottom:40px}
+.fin-hdr h1{font-size:28px;margin-bottom:8px;background:linear-gradient(135deg,var(--c5),var(--c7));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.fin-hdr p{color:var(--dim);font-size:14px}
+.fin-score{text-align:center;font-size:58px;font-weight:800;margin-bottom:4px}
+.fin-score-lbl{text-align:center;color:var(--dim);margin-bottom:36px;font-size:13px}
+.fin-box{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rad);padding:28px}
+.fin-box h2{font-size:16px;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--bdr)}
+.fin-list{list-style:none}
+.fin-list li{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--bdr);font-size:13px}
+.fin-list li:last-child{border-bottom:none}
+.fin-num{color:var(--ghost);min-width:22px;font-size:12px}
+.fin-nm{font-weight:600;color:var(--txt)}
+.fin-sm{color:var(--dim)}
+.fin-back{text-align:center;margin-top:32px}
+
+/* ── ANIM ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeUp .35s ease}
+.fade-in-d{animation:fadeUp .4s ease .12s both}
+
+@media(max-width:560px){
+  .ch-grid{grid-template-columns:1fr}
+  .ach-grid{grid-template-columns:1fr 1fr}
+  .story-wrap{padding:24px 14px 40px}
+}
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div class="hud" id="hud">
+  <div class="hud-left">
+    <div class="xp-badge"><span class="star">★</span> <span id="xpVal">0</span> XP</div>
+    <div class="prog-wrap">
+      <div class="prog-bar"><div class="prog-fill" id="pFill"></div></div>
+      <span class="prog-txt" id="pTxt">0 / 34</span>
+    </div>
+  </div>
+  <div class="hud-nav">
+    <button class="hb" id="btnMap" onclick="go('map')">Map</button>
+    <button class="hb" id="btnNb" onclick="go('notebook')">Notebook</button>
+    <button class="hb" id="btnAch" onclick="go('achievements')">Achievements</button>
+  </div>
+</div>
+
+<!-- TITLE -->
+<div class="scr on" id="titleScr">
+  <div class="badge">Ted Nelson presents</div>
+  <h1>Computer Lib<span class="sl"> / </span>Dream Machines</h1>
+  <div class="author">by Theodor H. Nelson · 1974</div>
+  <div class="div"></div>
+  <p class="intro">It is 1974. A peculiar two-sided book has just been published. One side promises to liberate you. The other dares to dream the future of information itself. You pick it up.</p>
+  <button class="btn-go" onclick="go('map')">Begin Your Journey →</button>
+  <div class="yr">1974</div>
+</div>
+
+<!-- MAP -->
+<div class="scr" id="mapScr">
+  <div class="map-hdr"><h1>Choose Your Chapter</h1><p>Explore Ted Nelson's world in any order. Each chapter reveals a different dimension.</p></div>
+  <div class="ch-grid" id="chGrid"></div>
+</div>
+
+<!-- STORY -->
+<div class="scr" id="storyScr">
+  <div class="story-wrap">
+    <div class="s-crumb" id="sCrumb"></div>
+    <h1 class="s-title" id="sTitle"></h1>
+    <div class="s-tag" id="sTag"></div>
+    <div class="s-narr fade-in" id="sNarr"></div>
+    <div class="s-quote" id="sQuote" style="display:none"></div>
+    <div class="s-xp" id="sXp" style="display:none"></div>
+    <div class="choices fade-in-d" id="sChoices"></div>
+    <button class="back-btn" onclick="go('map')">← Back to Map</button>
+  </div>
+</div>
+
+<!-- NOTEBOOK -->
+<div class="scr" id="nbScr">
+  <div class="nb-wrap">
+    <div class="nb-hdr"><h1>Nelson's Notebook</h1><p>A record of everything you've discovered.</p></div>
+    <div id="nbContent"></div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS -->
+<div class="scr" id="achScr">
+  <div class="ach-wrap">
+    <div class="ach-hdr"><h1>Achievements</h1><p>Earned by exploring Ted Nelson's world.</p></div>
+    <div class="ach-grid" id="achGrid"></div>
+  </div>
+</div>
+
+<!-- FINAL -->
+<div class="scr" id="finScr">
+  <div class="fin-wrap">
+    <div class="fin-hdr"><h1>Lecture Prep Complete</h1><p>You've journeyed through Ted Nelson's vision. Here's what you know.</p></div>
+    <div class="fin-score" id="finScore"></div>
+    <div class="fin-score-lbl">Lecture Readiness</div>
+    <div class="fin-box" id="finBox"></div>
+    <div class="fin-back"><button class="btn-go" onclick="go('map')">← Back to Map</button></div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENT POPUP -->
+<div class="popup" id="popup">
+  <div class="pop-lbl">Achievement Unlocked</div>
+  <div class="pop-ico" id="popIco"></div>
+  <div class="pop-nm" id="popNm"></div>
+  <div class="pop-ds" id="popDs"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════
+const CHAPTERS = [
+  { id:"underground", title:"The Computer Underground", desc:"Everything you think about computers is wrong.", color:"#3fb950", nodes:["machine_myth","computer_lib_def","the_fan","the_price"], ach:"ach_underground" },
+  { id:"colossus",    title:"The Colossus & the Rebels", desc:"IBM is king — but the rebels are already building.", color:"#f85149", nodes:["ibm_empire","ibm_innovation","minicomputers","altair","unix_dec"], ach:"ach_colossus" },
+  { id:"sensory",     title:"The Sensory Machine", desc:"What happens when computers learn to show, not just tell.", color:"#58a6ff", nodes:["crt_basics","sketchpad","computer_art","video_art","three_d"], ach:"ach_sensory" },
+  { id:"minds",       title:"Minds & Machines", desc:"Teaching, learning, thinking — with help from a screen.", color:"#d29922", nodes:["plato_intro","plato_games","ai_eliza","cai_fail","engelbart","nls_system"], ach:"ach_minds" },
+  { id:"revelation",  title:"Nelson's Revelation", desc:"The idea that will change everything: hypertext.", color:"#bc8cff", nodes:["hypertext_birth","bush_memex","hypertext_types","stretchtext","grand_hypertext","hypertext_novels"], ach:"ach_revelation" },
+  { id:"showing",     title:"The Art of Showing", desc:"How we present ideas shapes how we think.", color:"#f778ba", nodes:["fantics_intro","fantics_detail","trac_language","thinkertoys"], ach:"ach_showing" },
+  { id:"xanadu",      title:"Xanadu", desc:"Nelson's grandest dream — and the future of information itself.", color:"#7c5cfc", nodes:["xanadu_dream","xanadu_project","xanadu_network","intertwingled"], ach:"ach_xanadu" }
+];
+
+const TOTAL_NODES = 34;
+
+const ACHIEVEMENTS = [
+  { id:"ach_underground", name:"Underground Explorer", ico:"🌿", desc:"Completed The Computer Underground", color:"#3fb950", glow:"rgba(63,185,80,.2)" },
+  { id:"ach_colossus",    name:"Rebel Sympathizer",   ico:"⚡", desc:"Completed The Colossus & the Rebels", color:"#f85149", glow:"rgba(248,81,73,.2)" },
+  { id:"ach_sensory",     name:"Sensory Pioneer",     ico:"🖼️", desc:"Completed The Sensory Machine", color:"#58a6ff", glow:"rgba(88,166,255,.2)" },
+  { id:"ach_minds",       name:"Mind Mapper",         ico:"🧠", desc:"Completed Minds & Machines", color:"#d29922", glow:"rgba(210,153,34,.2)" },
+  { id:"ach_revelation",  name:"Hypertext Visionary", ico:"🔗", desc:"Completed Nelson's Revelation", color:"#bc8cff", glow:"rgba(188,140,255,.2)" },
+  { id:"ach_showing",     name:"Fantic Master",       ico:"🎭", desc:"Completed The Art of Showing", color:"#f778ba", glow:"rgba(247,120,186,.2)" },
+  { id:"ach_xanadu",      name:"Xanadu Dreamer",      ico:"✨", desc:"Completed Xanadu", color:"#7c5cfc", glow:"rgba(124,92,252,.2)" },
+  { id:"ach_scholar",     name:"Nelson Scholar",      ico:"📖", desc:"Completed all seven chapters", color:"#58a6ff", glow:"rgba(88,166,255,.25)" },
+  { id:"ach_deep",        name:"Deep Diver",          ico:"🏊", desc:"Read all 35 concepts", color:"#d29922", glow:"rgba(210,153,34,.25)" }
+];
+
+// ══════════════════════════════════════════════
+// NODE CONTENT
+// ══════════════════════════════════════════════
+const N = {
+// ─── Ch1: The Underground ───
+machine_myth:{ch:"underground",title:"The Machine Is a Myth",concept:"The Machine Myth",csum:"Machines aren't inherently dehumanizing. They're neutral — shaped by systems and people, not destiny.",
+narr:`The first thing Ted Nelson wants you to know: <em>everything you think about computers is probably wrong.</em><br><br>In 1974, people talk about "The Machine" as if it were a single, cold, relentless force. Assembly lines. Punch cards. Numbers instead of names.<br><br>Nelson isn't buying it. He lines up counterexamples, each one a small gut-punch of clarity:<br><br><strong>The automobile</strong> — a machine, but deeply personal. Covered in bumper stickers, reflecting its owner's personality. "Consider the Baja Buggy Volkswagen and the ostentatious cushy Cadillac."<br><br><strong>The camera</strong> — a machine that freezes beauty.<br><br><strong>The bicycle</strong> — a machine that brings you into personal, non-polluting contact with nature.<br><br>"The bad things in our society are the products of bad systems, bad decisions, and conceivably bad people — in various combinations." Computers, he's saying, are essentially neutral. What matters is how we design the world around them.`,
+quote:{t:"The Machine is a myth. The bad things in our society are the products of bad systems, bad decisions, and conceivably bad people.",a:"Ted Nelson"},
+xp:75, ch_next:[{l:"So what does 'Computer Lib' actually mean?",n:"computer_lib_def"},{l:"Jump ahead — tell me about IBM",n:"ibm_empire"}]},
+
+computer_lib_def:{ch:"underground",title:"Computer Lib",concept:"Computer Lib",csum:"Nelson's philosophy in two sentences: making people freer through computers. That's it.",
+narr:`Nelson doesn't bury his thesis. He states it plainly:<br><br><em>"By Computer Lib I mean simply: making people freer through computers. That's all."</em><br><br>Two sentences. That's the entire philosophy of the book's first half. But in 1974, those two sentences carry enormous weight.<br><br>Computers belong to corporations and governments. They live behind glass walls, tended by specialists who have every reason to keep them mysterious. Nelson quotes one computer professional with devastating honesty:<br><br><em>"Your first duty is to keep your job, right? It wouldn't do to set up systems so easy to use that the company wouldn't need you anymore."</em><br><br>Nelson's response is not polite. The entire potential of computers is being locked away by people who profit from the lock. Computer Lib is his declaration: this has to change.`,
+quote:{t:"By Computer Lib I mean simply: making people freer through computers. That's all.",a:"Ted Nelson"},
+xp:80, ch_next:[{l:"What kind of person embraces computers?",n:"the_fan"},{l:"Skip ahead to the price revolution",n:"the_price"}]},
+
+the_fan:{ch:"underground",title:"The Computer Fan",concept:"The Computer Fan",csum:"Nelson rejects 'professional' and declares himself a fan — arguing computers are creative, playful, and exciting.",
+narr:`Nelson does something unusual for a technologist: he rejects the title "professional" entirely.<br><br><em>"I'm a computer fan, and I'm out to make you one."</em><br><br>It sounds casual. It's actually a provocation. In 1974, being a computer professional means you're credentialed, serious, part of the establishment. Nelson is deliberately stepping outside that frame.<br><br>He pushes back against the myth that computers are uncreative — that real creativity means clay between fingers, paint on canvas. "Computers involve imagination and creation at the highest level. They are toys, they are tools, they are glorious abstractions."<br><br>The computer fan feels genuine <em>delight.</em> The same excitement as electric trains. And then the punchline that lands like a bell: <em>"If you are interested in democracy and its future, you'd better understand computers."</em>`,
+quote:{t:"They are toys, they are tools, they are glorious abstractions.",a:"Ted Nelson"},
+xp:60, ch_next:[{l:"How cheap are computers getting?",n:"the_price"}]},
+
+the_price:{ch:"underground",title:"The Price Is Falling",concept:"Falling Computer Costs",csum:"Computer prices are plummeting fast — and Nelson sees this as the key to everything coming next.",
+narr:`Underneath Nelson's idealism, there's a hard economic argument: computers are getting cheap. <em>Fast.</em><br><br>"The price of computers and of using them is going down as fast as every other price is going up." In 1974, this feels almost miraculous. A minicomputer that cost millions five years ago is now available for tens of thousands.<br><br>The Altair 8800 is about to hit the market — a real, programmable computer, for <strong>$397 as a kit.</strong><br><br>Nelson sees the trajectory. The barrier to computing won't be cost forever. It's going to be <em>knowledge.</em> And the democratization of understanding — breaking down the walls of mystery — is exactly what Computer Lib is about.<br><br>"In the next few decades we may be reduced to eating soybeans and carrots," he writes with characteristic humor, "but we'll certainly have computers."`,
+xp:65, ch_next:[{l:"Who controls the computer world right now?",n:"ibm_empire"},{l:"What does the screen actually do?",n:"crt_basics"},{l:"← Back to Map",n:"__map__"}]},
+
+// ─── Ch2: Colossus & Rebels ───
+ibm_empire:{ch:"colossus",title:"IBM: The Colossus",concept:"IBM's Dominance",csum:"IBM dominates computing — not through innovation, but by making other companies' innovations 'respectable.'",
+narr:`If 1974 has a colossus in Nelson's story, it's IBM. The company dominates computing so thoroughly that "IBM" and "computer" are practically synonymous.<br><br>But Nelson reveals something the promotional literature never admits: <em>IBM is not the innovator everyone thinks.</em><br><br>"IBM usually does not bring out a new type of product until some other company has pioneered it." Transistorized computers? Pioneered by Philco. Virtual memory? Burroughs. Microprogramming? Bunker-Ramo.<br><br>IBM's real genius isn't invention — it's <em>orchestration.</em> "The introduction of IBM products is orchestrated like a military campaign." When IBM adopts an innovation, customers feel reassured. The field's phrase for it: IBM "makes things respectable."<br><br>Powerful. But it also means the real innovation happens elsewhere.`,
+xp:70, ch_next:[{l:"What's IBM's deeper strategic problem?",n:"ibm_innovation"},{l:"Skip — tell me about the rebels",n:"minicomputers"}]},
+
+ibm_innovation:{ch:"colossus",title:"The Impact Problem",concept:"IBM's Impact Problem",csum:"Every new IBM product must coexist with existing ones. This inertia makes radical innovation almost impossible from within.",
+narr:`Nelson digs into IBM's peculiar strategic bind.<br><br>Every new product IBM releases has to fit alongside its <em>existing</em> product line without cannibalizing it. A text-editing system might threaten the typewriter division. A cheaper storage device might make an expensive computer obsolete.<br><br>IBM calls this the <strong>"impact" problem.</strong><br><br>"Innovations must expand the amount IBM is taking in, or IBM loses by making them." Think about what that means: a truly radical innovation — one that makes IBM's current products look primitive — is exactly the kind of thing IBM can <em>least afford</em> to release.<br><br>Not malice. The natural behavior of a dominant corporation. IBM has "an immense inertia" that cannot be revised quickly. The gap this creates is the gap someone else will fill.`,
+xp:75, ch_next:[{l:"Who's filling that gap?",n:"minicomputers"}]},
+
+minicomputers:{ch:"colossus",title:"The Minicomputer Revolution",concept:"Minicomputers",csum:"Smaller, cheaper computers from DEC and others — the first crack in IBM's wall, ancestors of everything personal.",
+narr:`The rebellion is already happening, and it looks like a small beige box.<br><br>Minicomputers — from <strong>DEC</strong> (Digital Equipment Corporation), Data General, and a handful of others — cost a fraction of IBM's mainframes. They don't need climate-controlled rooms. They don't need staff operators. They need a programmer and a desk.<br><br>Nelson watches this with visible excitement. The minicomputer represents something IBM's architecture never could: <em>computing becoming accessible.</em> Moving out of the glass-walled rooms. Into labs. Into universities. Soon — into homes.<br><br>Not glamorous yet. But Nelson can see the trajectory: smaller, cheaper, more personal. The minicomputer is the ancestor of everything that's coming. It's the crack in the wall — and through that crack, a flood.`,
+xp:70, ch_next:[{l:"Tell me about the Altair 8800",n:"altair"}]},
+
+altair:{ch:"colossus",title:"The Altair 8800",concept:"The Altair 8800",csum:"A $397 computer kit that ignited the hobbyist revolution — the moment personal computing became real.",
+narr:`The Altair 8800 is about to change everything.<br><br>It's a blue metal box. A panel of switches and blinking lights on the front. No screen. No keyboard — at first. You program it by flipping switches one at a time.<br><br>It shouldn't be exciting. <em>It is.</em><br><br>For the first time, a real computer is within reach of an ordinary person with a few hundred dollars. The kit costs <strong>$397.</strong> <em>Popular Electronics</em> puts it on the cover. Letters pour in.<br><br>The hobbyist culture explodes. People building their own machines. Writing their own programs. Sharing knowledge freely — in newsletters, in clubs, in garages. This is the computer counterculture Nelson's been writing about: playful, democratic, completely grassroots.<br><br>The Altair is the spark. What follows will be fire.`,
+xp:80, ch_next:[{l:"What about Unix and the PDP-11?",n:"unix_dec"}]},
+
+unix_dec:{ch:"colossus",title:"Unix and the PDP-11",concept:"Unix & PDP-11 Culture",csum:"Bell Labs' elegant OS + DEC's beloved minicomputer = a culture of hacking, sharing, and doing one thing well.",
+narr:`At Bell Labs, something quiet and revolutionary is happening.<br><br>A small team — Ken Thompson, Dennis Ritchie, and colleagues — has created <strong>Unix:</strong> an operating system that is elegant, flexible, and designed to let programmers do what they actually want. Its philosophy is beautifully simple: small, composable tools that each do one thing well. Chain them together and you can do anything.<br><br>It runs on the <strong>DEC PDP-11</strong> — a minicomputer becoming the machine of choice for researchers and hackers.<br><br>Nelson notices the culture: people who <em>love</em> these machines. Who hack on them late at night. Who share code freely, build on each other's work. Unix's philosophy — simplicity, composability, sharing — is the opposite of IBM's monolithic approach.<br><br>This is what Computer Lib <em>looks like</em> in practice.`,
+quote:{t:"Do one thing and do it well.",a:"Unix philosophy"},
+xp:75, ch_next:[{l:"What can the screen actually do?",n:"crt_basics"},{l:"← Back to Map",n:"__map__"}]},
+
+// ─── Ch3: The Sensory Machine ───
+crt_basics:{ch:"sensory",title:"Lightning in a Bottle",concept:"The CRT",csum:"The cathode ray tube: an electron gun drawing light on glass. The foundation of every visual computer interface.",
+narr:`Before you can understand the future of computing, you need to understand the screen.<br><br>In 1974, that means the <strong>CRT</strong> — the Cathode Ray Tube. Nelson calls it "lightning in a bottle."<br><br>An electron gun shoots a beam of electrons at glass coated with phosphor. The beam hits. The phosphor <em>glows.</em> You see a dot of light. Move the beam fast enough — hundreds of thousands of times per second — and you can draw anything. Lines. Curves. Text. Pictures. All made of light, moving too fast to track, leaving afterimages that create the illusion of a stable picture.<br><br>Elegant. Fast. And the foundation of everything visual that's about to happen. The CRT is the canvas. Nelson is fascinated by what people draw on it.`,
+xp:60, ch_next:[{l:"The first person to draw on a computer screen",n:"sketchpad"}]},
+
+sketchpad:{ch:"sensory",title:"Sketchpad",concept:"Sketchpad",csum:"Sutherland's 1963 breakthrough: drawing on a computer with constraints that maintain relationships automatically.",
+narr:`Ivan Sutherland built <strong>Sketchpad</strong> in 1963, and it changed the game.<br><br>For the first time, you could draw directly on a computer screen. With a light pen you placed shapes, moved them, connected them, resized them. Interactive. Immediate. <em>Alive.</em><br><br>But Sutherland's real insight wasn't the drawing. It was the <strong>constraints.</strong><br><br>You could tell Sketchpad: "These two lines must be the same length." "This angle must be 90 degrees." The system <em>maintained</em> those relationships automatically — even as you dragged things around. Pull one corner of a rectangle, and the right angles held.<br><br>This was the first hint that a computer could think about <em>relationships</em>, not just positions. The beginning of computer-aided design. A new way of thinking about what screens could do.`,
+xp:80, ch_next:[{l:"Tell me about computer art",n:"computer_art"},{l:"Skip to 3D graphics",n:"three_d"}]},
+
+computer_art:{ch:"sensory",title:"Computer Art",concept:"Computer Art Pioneers",csum:"Knowlton, Schwartz, Whitney — the pioneers making genuine, beautiful art with computers in the 60s and 70s.",
+narr:`Ken Knowlton at Bell Labs and Lillian Schwartz are making <em>films</em> with computers. Real art — not technical demos. Beautiful, abstract, otherworldly animations.<br><br>Knowlton built <strong>BEFLJX</strong> and <strong>EXPLOR</strong> — languages designed for computer-generated animation. The films are stunning: precise, mathematical, deeply strange.<br><br>Then there's <strong>John Whitney</strong> — Nelson calls him "the ancestor of us all" in computer animation. Whitney built a mechanical device in the forties to create mathematical animations — <em>music made visible as patterns of light.</em> By the seventies he's using actual computers, creating animations that feel almost alive.<br><br>Nelson is genuinely moved. Computer art isn't a novelty. It's a <em>new medium.</em> With its own aesthetics. Its own beauty. The screen isn't just for data — it's for wonder.`,
+quote:{t:"John Whitney is the ancestor of us all.",a:"Ted Nelson on computer animation"},
+xp:70, ch_next:[{l:"What about video and live art?",n:"video_art"}]},
+
+video_art:{ch:"sensory",title:"The Image Processor",concept:"Video Art & Dan Sandin",csum:"Sandin's open-source video synthesizer: a live instrument for transforming video, designed to be shared freely.",
+narr:`Dan Sandin built something Nelson loves: the <strong>Image Processor.</strong><br><br>It's a video synthesizer — a box of circuits that takes a video signal and <em>transforms</em> it. Feed in camera footage. Feed in TV. The Image Processor bends it, warps it, recolors it — <em>in real time.</em><br><br>It's live. It responds to you. It's an <em>instrument</em>, like a guitar, but for video. You play it. You improvise. The results are unpredictable and beautiful.<br><br>What Nelson loves most: Sandin designed it as a <strong>kit.</strong> Anyone can build one. Schematics are published. Parts are off-the-shelf. Open source before that phrase existed.<br><br>Nelson sees this as the model: media tools designed to be shared, not hoarded. Built by individuals. The Image Processor is <em>democracy for video.</em>`,
+xp:75, ch_next:[{l:"What about three dimensions?",n:"three_d"}]},
+
+three_d:{ch:"sensory",title:"Into Three Dimensions",concept:"3D Computer Graphics",csum:"The early quest to show 3D objects interactively on screen — and the promise of worlds inside computers.",
+narr:`The quest to make computers show <em>three dimensions</em> is already underway.<br><br>A company called <strong>Adage</strong> in Cambridge has a tremendous lead. Their system displays 3D objects on screen and lets you <strong>rotate them interactively.</strong> Spin an object. See it from any angle. Watch depth and shadow shift.<br><br>"Interactive rotation is marvelously impressive," Nelson writes. It's expensive. Specialized. Most people can't afford it.<br><br>But he sees where this is going. If a computer can show you a 3D object and let you move around it, the screen stops being a <em>window</em> and becomes a <em>world.</em><br><br>The implications are staggering — for education, for design, for understanding anything complex. You don't just read about a molecule. You <em>look at it from every angle.</em> 3D display is coming. And when it does, everything changes.`,
+xp:70, ch_next:[{l:"Tell me about PLATO",n:"plato_intro"},{l:"← Back to Map",n:"__map__"}]},
+
+// ─── Ch4: Minds & Machines ───
+plato_intro:{ch:"minds",title:"PLATO: The Greatest Display",concept:"PLATO System",csum:"Illinois' revolutionary computer system — 500 users worldwide, instant response, plasma displays, and a culture all its own.",
+narr:`<strong>PLATO</strong> is, Nelson writes, "the world's greatest computer display system."<br><br>Built at the University of Illinois, PLATO has about 500 users at terminals around the world. The hardware was designed by <strong>Don Bitzer</strong> — a genius of display technology. Each terminal has a <em>plasma display panel</em> showing text and graphics with remarkable crispness.<br><br>But the real magic is the <strong>responsiveness.</strong> When you type, the response is instant. No waiting for a mainframe. No lag. For the first time, a computer system feels <em>alive.</em> It feels like it's actually listening.<br><br>PLATO stands for "Programmed Logic for Automated Teaching Operations." It was designed for education. But what its users actually made of it turned out to be far more interesting than what its designers intended.`,
+quote:{t:"PLATO is the world's greatest computer display system.",a:"Ted Nelson"},
+xp:75, ch_next:[{l:"What did PLATO's users actually do?",n:"plato_games"},{l:"Skip — tell me about AI",n:"ai_eliza"}]},
+
+plato_games:{ch:"minds",title:"PLATO Games",concept:"PLATO's Game Culture",csum:"Students built hundreds of games — adventure, strategy, space combat — creating one of the first online communities.",
+narr:`Here's what Nelson loves most about PLATO: <em>the games.</em><br><br>Students built them. Hundreds of them. Not sanctioned by the university. Not part of any curriculum. Built by students, for students, in the margins of an educational system.<br><br>There's <strong>Nova</strong> — a space exploration game. <strong>The Red Baron</strong> — flying combat. Text adventures set in Tolkien's Middle Earth, built by fans.<br><br>"People who only play PLATO games occasionally become addicted," Nelson notes. And they're not solitary — they're <em>social.</em> People sit together at terminals, collaborate, compete, talk about their games in hallways.<br><br>PLATO's game culture is one of the <strong>first online communities.</strong> Playful. Creative. Grassroots. It tells Nelson something important: give people a powerful, responsive tool, and they don't just use it the way you planned. They <em>play.</em>`,
+xp:70, ch_next:[{l:"What about artificial intelligence?",n:"ai_eliza"}]},
+
+ai_eliza:{ch:"minds",title:"ELIZA",concept:"AI & ELIZA",csum:"A chatbot that fools people — not because it's smart, but because humans project meaning onto almost anything.",
+narr:`Joseph Weizenbaum built <strong>ELIZA</strong> in 1966. It simulates conversation by a deceptively simple trick: pattern-match your words and reflect them back as questions.<br><br>You say: <em>"I've been feeling anxious about my job."</em><br>ELIZA responds: <em>"Tell me more about your feelings about your job."</em><br><br>It doesn't understand a word. It has no model of reality. It's a mirror made of code.<br><br><em>And it fools people.</em> Weizenbaum's own secretary — who knew exactly what the program was — asked to be left alone with it. People confess to ELIZA. They form emotional connections. They <em>trust</em> it.<br><br>Nelson finds this deeply instructive. Not because ELIZA is intelligent — it isn't. But because it reveals how powerfully humans project meaning onto machines. ELIZA is both a warning and a clue about the future of human-computer interaction.`,
+xp:80, ch_next:[{l:"What about computer-aided education?",n:"cai_fail"}]},
+
+cai_fail:{ch:"minds",title:"Why CAI Fails",concept:"CAI Critique",csum:"Computer-Aided Instruction drills and tests. Nelson's alternative: let students follow curiosity through hypertext.",
+narr:`<strong>Computer-Aided Instruction</strong> — CAI — is the hot topic in seventies education. The pitch: put students in front of computers, measure their progress precisely. Efficient. Scalable. Scientific.<br><br>Nelson is <em>furious.</em><br><br>CAI systems are "optimized for CAI" — a phrase dripping with irony. Designed to produce <em>testable outcomes.</em> They drill. They quiz. They reward correct answers. But they don't teach the way humans actually learn — which is messily, curiously, by following threads of interest wherever they lead.<br><br>"<strong>Not through newly oppressive forms of computer-assisted instruction,</strong>" Nelson declares. His alternative isn't more structure. It's <em>less.</em> It's hypertext — letting students follow their own curiosity, branching into whatever catches their attention.<br><br>The irony: you are, right now, exploring ideas exactly the way Nelson wanted education to work.`,
+quote:{t:"Not through newly oppressive forms of computer-assisted instruction.",a:"Ted Nelson"},
+xp:85, ch_next:[{l:"Tell me about Engelbart",n:"engelbart"}]},
+
+engelbart:{ch:"minds",title:"Engelbart: The Saintly Man",concept:"Douglas Engelbart",csum:"Stanford's visionary — inventor of the mouse, collaborative editing, and the philosophy that computers should augment human intellect.",
+narr:`Douglas Engelbart is, in Nelson's words, <em>"a saintly man at Stanford Research Institute whose dream has been to make people smarter and bring them together."</em><br><br>Engelbart started as a CRT engineer. But his driving thought was that screens could <strong>augment human intellect</strong> — not replace thought, but <em>extend</em> it. Make minds more powerful.<br><br>Millions of dollars have been spent on his work. He invented the <strong>mouse.</strong> He invented <strong>collaborative editing.</strong> He gave the famous <strong>"Mother of All Demos"</strong> in 1968 — showing the world what a computer could be when designed as a thinking tool.<br><br>Nelson's fascination isn't just the inventions. It's the philosophy. Computers as extensions of human cognition. Nelson has the same dream, arrived at from a different direction. Two visionaries. One future.`,
+quote:{t:"A saintly man whose dream has been to make people smarter and bring them together.",a:"Ted Nelson on Engelbart"},
+xp:85, ch_next:[{l:"What did Engelbart actually build?",n:"nls_system"}]},
+
+nls_system:{ch:"minds",title:"NLS: No More Paper",concept:"NLS (oN-Line System)",csum:"Engelbart's system where everything written is instantly searchable, linkable, and collaborative. Paper is eliminated.",
+narr:`Engelbart's system is called <strong>NLS</strong> — the oN-Line System. Nelson is delighted by it.<br><br>Everything written in NLS is instantly <em>there.</em> Searchable. Linkable. Connected to source materials, footnotes, comments. A document is finished the moment it's written. No retyping. No filing. No losing things.<br><br><strong>"All handling of paper is eliminated,"</strong> Nelson writes — and you can practically hear his joy.<br><br>The collaboration is stunning. Two people in different cities work through screens connected by phone. Each sees what the other sees. Each controls a cursor. They call up documents, point things out, change them together.<br><br>"The effect," Nelson writes, "is somewhere between a blackboard and a desk."<br><br>NLS is "a prototype for the world of the future." The technology works. The dream of connected, collaborative, paper-free information is <em>real.</em>`,
+quote:{t:"The effect is somewhere between a blackboard and a desk.",a:"Ted Nelson on NLS collaboration"},
+xp:90, ch_next:[{l:"Now — tell me about hypertext",n:"hypertext_birth"},{l:"← Back to Map",n:"__map__"}]},
+
+// ─── Ch5: Nelson's Revelation ───
+hypertext_birth:{ch:"revelation",title:"The Birth of Hypertext",concept:"Hypertext",csum:"Nelson's 1965 invention: text that branches and links on request. The idea that will reshape information forever.",
+narr:`Now we get to the thing Ted Nelson actually <em>invented.</em> The thing that will define his legacy. The word you use every day without knowing he created it.<br><br>In 1965, at a conference in Prague, Nelson coined a word: <strong>hypertext.</strong><br><br><em>"Forms of writing which branch or perform on request."</em><br><br>Text that isn't a single strand but a <em>web.</em> That links to other text. That lets you follow connections. That responds to your curiosity instead of forcing you along a single predetermined path.<br><br>Nelson had been thinking about this since the late fifties — frustrated by how linear writing forces you to flatten ideas that are actually interconnected. You read a footnote, lose your place. You want to dig deeper, but the explanation is three pages away.<br><br>Writing is a river. But thinking is an ocean. Hypertext is the ocean.`,
+quote:{t:"Forms of writing which branch or perform on request.",a:"Ted Nelson, 1965"},
+xp:95, ch_next:[{l:"Who thought of this before Nelson?",n:"bush_memex"}]},
+
+bush_memex:{ch:"revelation",title:"Vannevar Bush and the Memex",concept:"Bush's Memex",csum:"In 1945, Bush imagined linked information on screens — 20 years before Nelson named it. The field ignored what he actually wrote.",
+narr:`Nelson wasn't the first to imagine linked information. <strong>Vannevar Bush</strong> got there twenty years earlier.<br><br>Bush was Roosevelt's science advisor. In <em>"As We May Think"</em> — published in the <em>Atlantic Monthly</em>, July 1945 — he imagined the <strong>Memex:</strong> a desk with screens where a researcher follows trails of association between documents, the way a human mind works.<br><br>Bush described linking footnotes. Following references. Building trails through information. It was hypertext — twenty years before Nelson named it.<br><br>But here's what infuriated Nelson: the entire field of <strong>Information Retrieval</strong> claimed Bush as its founder — while completely <em>ignoring</em> what Bush actually described. They were doing keyword search. Bush was describing <em>following connections.</em><br><br>"Bush's article has been taken as the starting point for the field of Information Retrieval, but its actual contents have been ignored by acclamation."`,
+quote:{t:"Bush's article has been taken as the starting point for Information Retrieval, but its actual contents have been ignored by acclamation.",a:"Ted Nelson"},
+xp:80, ch_next:[{l:"What are the different types of hypertext?",n:"hypertext_types"}]},
+
+hypertext_types:{ch:"revelation",title:"Chunk, Continuous, Collateral",concept:"Types of Hypertext",csum:"Three kinds: chunk (click to jump), collateral (side-by-side), and continuous (text that breathes and flows).",
+narr:`By 1974, Nelson has spent nearly a decade refining his idea. He's identified distinct <em>types</em> of hypertext:<br><br><strong>Chunk hypertext</strong> — the simplest: you read a section, see links (marked with asterisks or labels), point at one, and a new chunk appears. It's a choose-your-own-adventure for information. (Sound familiar? This is essentially how the World Wide Web will work, thirty years from now.)<br><br><strong>Collateral hypertext</strong> — richer: multiple related texts side by side. A novel and its annotations. A speech and its fact-check. Two translations of a poem, compared in real time.<br><br><strong>Continuous hypertext</strong> — the most ambitious: text that doesn't jump. It <em>flows.</em> Expands and contracts based on what you want to know. Nelson calls this version <strong>stretchtext</strong> — and it's his favorite.`,
+xp:75, ch_next:[{l:"Tell me about stretchtext",n:"stretchtext"}]},
+
+stretchtext:{ch:"revelation",title:"Stretchtext",concept:"Stretchtext",csum:"Text that expands and contracts on demand — the ancestor of progressive disclosure in every modern interface.",
+narr:`<strong>Stretchtext</strong> is Nelson's most elegant invention, and it's deceptively simple to describe.<br><br>Imagine reading a sentence. You want more detail on one word. You point at it. The text <em>gently expands</em> — more context flows in around that word, smoothly, continuously. No jump. No popup. The text <em>breathes.</em><br><br>Want less? Point again. It contracts back. Smoothly. Naturally.<br><br>Instead of a fixed document you scroll through, you have a living thing that responds to curiosity. Deep here. Shallow there. Expanding where you're interested, contracting where you're not.<br><br>It demands a fundamentally different way of structuring text: not as fixed paragraphs, but as <em>layers of detail</em> that can be revealed or hidden on demand.<br><br>Stretchtext is the ancestor of every expandable interface you've ever used. The accordion menu. "Read more." Progressive disclosure. Nelson saw it all in 1965.`,
+xp:85, ch_next:[{l:"What's the ultimate vision?",n:"grand_hypertext"}]},
+
+grand_hypertext:{ch:"revelation",title:"The Grand Hypertext",concept:"The Grand Hypertext",csum:"Nelson's dream: 'everything' written about a subject, tied together by editors, explorable in any direction.",
+narr:`Nelson's real dream isn't just hypertext. It's the <strong>Grand Hypertext</strong> — "a hypertext consisting of everything written about a subject, or vaguely relevant to it, tied together by editors."<br><br>Not programmers — <em>editors.</em> Human beings who understand connections.<br><br>In a Grand Hypertext, you could read Arthur C. Clarke's unused storylines for <em>2001</em> alongside the final film, in context, with annotations. You could follow footnotes from Aeschylus to Marcus Aurelius. Link genetic data to 15th-century accounts of Indian tribes.<br><br>"<strong>Isn't that ridiculous?</strong>" Nelson asks. "When you could do it all electronically in seconds?"<br><br>The real dream: <em>"everything"</em> in the hypertext. Man's entire heritage, linked and explorable. An audacious vision. It will take decades to even begin. But it's stated here, clearly, in 1974.`,
+quote:{t:"Isn't that ridiculous? When you could do it all electronically in seconds?",a:"Ted Nelson on the Grand Hypertext"},
+xp:90, ch_next:[{l:"Hypertext in literature — it's already happening",n:"hypertext_novels"}]},
+
+hypertext_novels:{ch:"revelation",title:"Hypertext in Literature",concept:"Hypertext Novels",csum:"Nelson lists novels that are already hypertext in disguise — proving the mind has always wanted to branch.",
+narr:`To drive home that hypertext isn't just a technical concept, Nelson lists novels that are already, in some sense, <em>hypertext:</em><br><br><strong>Tristram Shandy</strong> by Sterne — famously non-linear, full of digressions that loop back on themselves.<br><br><strong>Spoon River Anthology</strong> by Masters — interconnected voices, each poem linking to others.<br><br><strong>Hopscotch</strong> by Cortazar — literally <em>meant to be read in multiple orders.</em> The author gives you two paths.<br><br><strong>Pale Fire</strong> by Nabokov — a poem and its footnotes, where the footnotes are the real story.<br><br>And <strong>Giles Goat-Boy</strong> by Barth, where hypertext actually <em>figures in</em> as a theme.<br><br>Nelson's point: the human mind has <em>always</em> wanted to make connections, to branch, to explore. Literature has been fighting paper for centuries. Give it a computer screen, and it finally has the medium it deserves.`,
+xp:75, ch_next:[{l:"Now — the art of how we show ideas",n:"fantics_intro"},{l:"← Back to Map",n:"__map__"}]},
+
+// ─── Ch6: The Art of Showing ───
+fantics_intro:{ch:"showing",title:"Fantics",concept:"Fantics",csum:"Nelson's coined discipline: the art and science of getting ideas across — both emotionally and cognitively.",
+narr:`Nelson coined another word, and this one is less famous but equally important: <strong>Fantics.</strong><br><br>From the Greek <em>phainein</em> — to show. <em>"By fantics I mean the art and science of getting ideas across, both emotionally and cognitively."</em><br><br>It's not just about presenting information. It's about how information <em>feels.</em> A ponderous technical manual conveys not just its content but an impression — of competence, or of the author's obtuseness. A beautiful diagram doesn't just show data; it makes you feel oriented.<br><br>Nelson argues fantics has been <em>neglected</em> by computer people, who treat presentation as a technical problem rather than a human one. "Penny arcades are the model for interactive computer systems," he writes, "not classrooms or libraries." The showmanship of ideas matters as much as the ideas themselves.`,
+quote:{t:"By fantics I mean the art and science of getting ideas across, both emotionally and cognitively.",a:"Ted Nelson"},
+xp:80, ch_next:[{l:"Break down the layers of Fantics",n:"fantics_detail"}]},
+
+fantics_detail:{ch:"showing",title:"Cognition and Connotation",concept:"Fantics Layers",csum:"Presentation has two inseparable halves: explicit structure (cognition) and feeling (connotation). Both matter.",
+narr:`Nelson breaks Fantics into layers:<br><br><strong>1.</strong> The art and science of presentation itself.<br><strong>2.</strong> Techniques — writing, stage direction, movie making, layout.<br><strong>3.</strong> The media themselves — their analysis and design.<br><strong>4.</strong> The design of <em>systems</em> for presentation — increasingly, computers.<br><strong>5.</strong> Psychological effect and impact.<br><strong>6.</strong> Sociological context.<br><br>The central insight: what gets across is <em>always dual.</em> Both the explicit structure <em>and</em> the feelings that go with it. "Exactness and connotation are an inseparable whole."<br><br>"<strong>Technically-oriented people who think that systems to interact with people can function on some technical basis — with no tie-ins to human feelings, psychology, or the larger social structure — are kidding themselves.</strong>"<br><br>A fierce critique of how computers were being designed in the seventies. The user is not a machine.`,
+xp:75, ch_next:[{l:"Tell me about TRAC Language",n:"trac_language"},{l:"Skip to Thinkertoys",n:"thinkertoys"}]},
+
+trac_language:{ch:"showing",title:"TRAC: All Is Text",concept:"TRAC Language",csum:"Calvin Mooers' elegant language built on one radical idea: all programs and data are stored as text strings.",
+narr:`Calvin Mooers created <strong>TRAC Language</strong>, and Nelson is captivated by its core idea.<br><br><strong>ALL IS TEXT.</strong><br><br>Programs and data are stored as strings of characters — in exactly the same way. They're labeled, stored, retrieved, and treated identically. There is no distinction between code and data. Everything is text.<br><br>This gives TRAC a remarkable elegance. "The facilities provided by the language should be constructed from as few basic ideas as possible," Nelson quotes. TRAC is wonderful for creating interactive systems, for handling text, for simulating complex systems. It's terrible at math. Nelson doesn't care.<br><br>What he sees in TRAC is a <em>philosophy:</em> that the fundamental unit of computing should be language itself, not numbers. "The TRAC Language is so elegant as to constitute a work of art."`,
+quote:{t:"ALL IS TEXT.",a:"TRAC Language philosophy"},
+xp:75, ch_next:[{l:"What are Thinkertoys?",n:"thinkertoys"}]},
+
+thinkertoys:{ch:"showing",title:"Thinkertoys",concept:"Thinkertoys",csum:"Nelson's visual systems for manipulating complex ideas on screen — tools for thinking, not just for showing.",
+narr:`Nelson designed something he calls <strong>Thinkertoys</strong> — visual systems for manipulating complex ideas directly on screen.<br><br>The <strong>3D Thinkertoy</strong> (or Th3) is his favorite: a system that lets you see multiple related documents, alternatives, and annotations in <em>three dimensions.</em> You can rotate them, zoom, compare.<br><br>The <strong>Parallel Textface</strong> is another: a way to view two texts side by side with their connections made visible. Like comparing two versions of a story. Or a text and its translation.<br><br>These aren't just visualization tools. They're <em>thinking tools.</em> Nelson's argument: the way we see information shapes the way we think about it. Design better ways to show complexity, and we'll be better at handling complexity.<br><br>"The screen isn't just for output," Nelson insists. "It's for thought." And Thinkertoys are the proof of concept.`,
+xp:80, ch_next:[{l:"Now — the grandest dream of all",n:"xanadu_dream"},{l:"← Back to Map",n:"__map__"}]},
+
+// ─── Ch7: Xanadu ───
+xanadu_dream:{ch:"xanadu",title:"The Dream",concept:"Xanadu Vision",csum:"Nelson's ultimate vision: a global network where all text is connected, explorable, and linked — costing $2 an hour.",
+narr:`And now — the dream.<br><br>Ted Nelson's ultimate vision — the thing he's been working toward since the sixties — is <strong>Project Xanadu.</strong><br><br>It's not a product. Not a software package. It's a <em>vision of the future of information itself.</em><br><br>Xanadu is a global network where <em>all text is connected.</em> Every document links to every other document it's related to. You follow any footnote, any reference, any thread of association — instantly.<br><br>The cost, Nelson imagines: about <strong>two dollars an hour.</strong> One for your local machine. One for the content. "There's a big, big market," he writes.<br><br>Not through big business. Not through government. Through "the byways of the private enterprise system." The same spirit, he jokes with characteristic humor, "that gave us McDonald's and candy color hot rod accessories."`,
+quote:{t:"There's a big, big market.",a:"Ted Nelson on Xanadu's economics"},
+xp:90, ch_next:[{l:"How would Xanadu actually work?",n:"xanadu_project"}]},
+
+xanadu_project:{ch:"xanadu",title:"Project Xanadu",concept:"Project Xanadu",csum:"Born from the Parallel Textface, Xanadu developed entirely new data structures for linking, viewing, and manipulating text.",
+narr:`Project Xanadu grew out of the Parallel Textface — Nelson's design for viewing linked texts side by side. Building that system required entirely new data structures and programming techniques.<br><br>Those techniques <em>became</em> Xanadu.<br><br>It's meant to run on a minicomputer or microprocessor — no connection to a mainframe required. Nelson hoped to have it on the market by 1976 or 1977, for a few thousand dollars. (That didn't happen. Xanadu will take decades.)<br><br>But the vision is stated clearly: a system for <em>"all forms of writing and scholarship, as well as anywhere else that we need to understand and manipulate complex clusterings of text."</em><br><br>A system not just for storing information — but for <em>thinking with it.</em> For seeing connections. For following ideas wherever they lead. A system for thought itself.`,
+xp:85, ch_next:[{l:"What would Xanadu need to work?",n:"xanadu_network"}]},
+
+xanadu_network:{ch:"xanadu",title:"The Xanadu Network",concept:"Xanadu Requirements",csum:"Nelson's specification: annotations everywhere, alternatives, historical versions, multicoupling, and evolutionary tracking.",
+narr:`Nelson outlines what a full Xanadu system would need. The list is striking:<br><br>• <strong>Annotations to anything,</strong> at any remove.<br>• <strong>Alternatives</strong> of decision, design, writing, theory.<br>• <strong>Unlinked pieces,</strong> hanging as the user wishes.<br>• <strong>Multicoupling</strong> — complex linkage between alternatives and annotations.<br>• <strong>Historical filing</strong> of the user's every action.<br>• <strong>Frozen moments and versions</strong> the user holds as meaningful.<br>• <strong>Evolutionary coupling</strong> — correspondences between evolving versions maintained automatically.<br><br>"If people knew they were possible," Nelson writes, "they would demand them. It is time for their creation."<br><br>A full-fledged decision and creativity system. Text and graphics. The ultimate design goal of Project Xanadu. It will inspire the World Wide Web. It will never be fully built. But the vision is extraordinary.`,
+xp:85, ch_next:[{l:"The deepest idea in the book",n:"intertwingled"}]},
+
+intertwingled:{ch:"xanadu",title:"Everything Is Deeply Intertwingled",concept:"Intertwingled",csum:"Nelson's deepest insight: knowledge has no natural boundaries. All structures are arbitrary. Everything connects to everything.",
+narr:`Nelson's last and deepest idea. The one that ties everything else together.<br><br><strong>EVERYTHING IS DEEPLY INTERTWINGLED.</strong><br><br>It's not a technical statement. It's a philosophical one.<br><br>"In an important sense there are no 'subjects' at all; there is only all knowledge, since the cross-connections among the myriad topics of this world simply cannot be divided up neatly."<br><br>The way we organize information — into books, subjects, disciplines — is <em>artificial.</em> A convenience of paper. In a hypertext, we could represent the <em>true structure</em> of knowledge: not a tree, not even a web, but something richer.<br><br>Nelson disagrees with Engelbart and Pask on this point: they accept natural hierarchies. Nelson rejects them all. "<strong>All structures must be treated as totally arbitrary, and any hierarchies we find are interesting accidents.</strong>"<br><br>The most radical idea in the book. And the one that will take the longest to understand.`,
+quote:{t:"Everything is deeply intertwingled.",a:"Ted Nelson"},
+xp:100, ch_next:[{l:"See my Lecture Prep Summary →",n:"__final__"}]}
+};
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let state = { xp:0, visited: new Set(), achEarned: new Set() };
+
+function load(){ try{ const s=localStorage.getItem('nelson_state'); if(s){ const d=JSON.parse(s); state.xp=d.xp||0; state.visited=new Set(d.visited||[]); state.achEarned=new Set(d.achEarned||[]); } }catch(e){} }
+function save(){ localStorage.setItem('nelson_state', JSON.stringify({xp:state.xp, visited:[...state.visited], achEarned:[...state.achEarned]})); }
+
+// ══════════════════════════════════════════════
+// SCREEN ROUTING
+// ══════════════════════════════════════════════
+const SCR_IDS = { title:'titleScr', map:'mapScr', story:'storyScr', notebook:'nbScr', achievements:'achScr', final:'finScr' };
+
+function go(screen, nodeId){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  if(screen==='story' && nodeId){
+    document.getElementById('storyScr').classList.add('on');
+    renderStory(nodeId);
+  } else if(SCR_IDS[screen]){
+    document.getElementById(SCR_IDS[screen]).classList.add('on');
+    if(screen==='map') renderMap();
+    if(screen==='notebook') renderNotebook();
+    if(screen==='achievements') renderAchievements();
+    if(screen==='final') renderFinal();
+  }
+  // HUD visibility
+  document.getElementById('hud').classList.toggle('on', screen!=='title');
+  // active nav
+  document.querySelectorAll('.hb').forEach(b=>b.classList.remove('active'));
+  if(screen==='map') document.getElementById('btnMap').classList.add('active');
+  if(screen==='notebook') document.getElementById('btnNb').classList.add('active');
+  if(screen==='achievements') document.getElementById('btnAch').classList.add('active');
+  updateHUD();
+}
+
+// ══════════════════════════════════════════════
+// HUD
+// ══════════════════════════════════════════════
+function updateHUD(){
+  document.getElementById('xpVal').textContent = state.xp;
+  const pct = Math.round((state.visited.size / TOTAL_NODES)*100);
+  document.getElementById('pFill').style.width = pct+'%';
+  document.getElementById('pTxt').textContent = state.visited.size+' / '+TOTAL_NODES;
+}
+
+// ══════════════════════════════════════════════
+// MAP
+// ══════════════════════════════════════════════
+function renderMap(){
+  const g = document.getElementById('chGrid');
+  g.innerHTML = '';
+  CHAPTERS.forEach((ch,i)=>{
+    const done = ch.nodes.every(n=>state.visited.has(n));
+    const card = document.createElement('div');
+    card.className = 'ch-card'+(done?' done':'');
+    card.style.setProperty('--card-c', ch.color);
+    card.style.cssText += `;--card-c:${ch.color}`;
+    card.querySelector && 0; // noop
+    card.innerHTML = `
+      <style>.ch-card[data-id="${ch.id}"]::before{background:${ch.color}}</style>
+      <div class="ch-num">Chapter ${i+1}</div>
+      <div class="ch-title">${ch.title}</div>
+      <div class="ch-desc">${ch.desc}</div>
+      <div class="ch-status${done?' done':''}"><div class="sd${done?' done':''}"></div>${done?'Complete':'Explore'}</div>`;
+    card.setAttribute('data-id', ch.id);
+    card.onclick = ()=>{ go('story', ch.nodes[0]); };
+    g.appendChild(card);
+  });
+  // inject color for ::before via a style block
+  let styleEl = document.getElementById('ch-styles');
+  if(!styleEl){ styleEl=document.createElement('style'); styleEl.id='ch-styles'; document.head.appendChild(styleEl); }
+  styleEl.textContent = CHAPTERS.map((ch,i)=>`.ch-card[data-id="${ch.id}"]::before{background:${ch.color}}`).join('\n');
+}
+
+// ══════════════════════════════════════════════
+// STORY
+// ══════════════════════════════════════════════
+function renderStory(nodeId){
+  const node = N[nodeId];
+  if(!node) return;
+  const chap = CHAPTERS.find(c=>c.id===node.ch);
+  const chColor = chap ? chap.color : '#58a6ff';
+
+  // set color vars
+  document.querySelector('.story-wrap').style.setProperty('--card-c', chColor);
+
+  // breadcrumb
+  document.getElementById('sCrumb').innerHTML = `<span class="cn">${chap?chap.title:'?'}</span><span class="sep">›</span><span class="nn">${node.title}</span>`;
+
+  // title
+  document.getElementById('sTitle').textContent = node.title;
+
+  // concept tag
+  const tag = document.getElementById('sTag');
+  tag.textContent = node.concept;
+  tag.style.color = chColor;
+  tag.style.background = chColor+'20';
+  tag.style.borderColor = chColor+'40';
+
+  // narrative (re-trigger animation)
+  const narr = document.getElementById('sNarr');
+  narr.classList.remove('fade-in');
+  void narr.offsetWidth;
+  narr.classList.add('fade-in');
+  narr.innerHTML = node.narr;
+
+  // quote
+  const qEl = document.getElementById('sQuote');
+  if(node.quote){
+    qEl.style.display='block';
+    qEl.style.borderColor = chColor;
+    qEl.innerHTML = `<p>"${node.quote.t}"</p><div class="att">— ${node.quote.a}</div>`;
+  } else { qEl.style.display='none'; }
+
+  // XP
+  const isNew = !state.visited.has(nodeId);
+  const xpEl = document.getElementById('sXp');
+  if(isNew && node.xp){
+    xpEl.style.display='inline-flex';
+    xpEl.innerHTML = `★ +${node.xp} XP`;
+    state.visited.add(nodeId);
+    state.xp += node.xp;
+    save();
+    updateHUD();
+    setTimeout(()=>checkAchievements(), 400);
+  } else { xpEl.style.display='none'; }
+
+  // choices
+  const chDiv = document.getElementById('sChoices');
+  chDiv.classList.remove('fade-in-d');
+  void chDiv.offsetWidth;
+  chDiv.classList.add('fade-in-d');
+  chDiv.innerHTML = '';
+  (node.ch_next||[]).forEach(c=>{
+    const btn = document.createElement('button');
+    btn.className='ch-btn';
+    btn.style.setProperty('--card-c', chColor);
+    btn.innerHTML = `<span class="arr" style="color:${chColor}">›</span>${c.l}`;
+    btn.onclick = ()=>{
+      if(c.n==='__map__') go('map');
+      else if(c.n==='__final__') go('final');
+      else go('story', c.n);
+    };
+    chDiv.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════════════
+// ACHIEVEMENTS
+// ══════════════════════════════════════════════
+function checkAchievements(){
+  const newOnes = [];
+  CHAPTERS.forEach(ch=>{
+    if(!state.achEarned.has(ch.ach) && ch.nodes.every(n=>state.visited.has(n))){
+      state.achEarned.add(ch.ach);
+      newOnes.push(ch.ach);
+    }
+  });
+  // scholar
+  if(!state.achEarned.has('ach_scholar') && CHAPTERS.every(ch=>ch.nodes.every(n=>state.visited.has(n)))){
+    state.achEarned.add('ach_scholar');
+    newOnes.push('ach_scholar');
+  }
+  // deep diver
+  if(!state.achEarned.has('ach_deep') && state.visited.size>=TOTAL_NODES){
+    state.achEarned.add('ach_deep');
+    newOnes.push('ach_deep');
+  }
+  save();
+  // show popups sequentially
+  let delay=0;
+  newOnes.forEach(id=>{
+    setTimeout(()=>showPopup(id),delay);
+    delay+=2200;
+  });
+}
+
+function showPopup(achId){
+  const ach = ACHIEVEMENTS.find(a=>a.id===achId);
+  if(!ach) return;
+  const p = document.getElementById('popup');
+  document.getElementById('popIco').textContent = ach.ico;
+  document.getElementById('popNm').textContent = ach.name;
+  document.getElementById('popDs').textContent = ach.desc;
+  p.classList.add('on');
+  setTimeout(()=>p.classList.remove('on'), 2000);
+}
+
+function renderAchievements(){
+  const g = document.getElementById('achGrid');
+  g.innerHTML = '';
+  ACHIEVEMENTS.forEach(ach=>{
+    const earned = state.achEarned.has(ach.id);
+    const card = document.createElement('div');
+    card.className = 'ach-card '+(earned?'on':'off');
+    if(earned){ card.style.setProperty('--card-c', ach.color); card.style.setProperty('--card-c-glow', ach.glow); }
+    card.innerHTML = `<div class="ach-ico">${ach.ico}</div><div class="ach-nm">${ach.name}</div><div class="ach-ds">${ach.desc}</div>`;
+    g.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════════════
+// NOTEBOOK
+// ══════════════════════════════════════════════
+function renderNotebook(){
+  const el = document.getElementById('nbContent');
+  el.innerHTML = '';
+  CHAPTERS.forEach(ch=>{
+    const sec = document.createElement('div');
+    sec.className='nb-ch';
+    sec.innerHTML = `<div class="nb-ch-title"><div class="nb-dot" style="background:${ch.color}"></div>${ch.title}</div>`;
+    ch.nodes.forEach(nid=>{
+      const node = N[nid];
+      if(!node) return;
+      const learned = state.visited.has(nid);
+      const item = document.createElement('div');
+      item.className = 'nb-item '+(learned?'on':'off');
+      item.innerHTML = `<div class="nb-name">${node.concept}</div><div class="nb-sum">${node.csum}</div>`;
+      sec.appendChild(item);
+    });
+    el.appendChild(sec);
+  });
+}
+
+// ══════════════════════════════════════════════
+// FINAL / LECTURE PREP
+// ══════════════════════════════════════════════
+function renderFinal(){
+  const pct = Math.round((state.visited.size/TOTAL_NODES)*100);
+  document.getElementById('finScore').textContent = pct+'%';
+  // color the score
+  const scoreEl = document.getElementById('finScore');
+  scoreEl.style.color = pct>=80?'var(--c1)': pct>=50?'var(--c4)':'var(--c2)';
+
+  let html = '<h2>Key Concepts — Study Guide</h2><ul class="fin-list">';
+  let num=1;
+  CHAPTERS.forEach(ch=>{
+    html += `<li style="padding-top:14px;padding-bottom:4px;border-bottom:1px solid var(--bdr)"><span class="fin-num"></span><span class="fin-nm" style="color:${ch.color}">${ch.title}</span></li>`;
+    ch.nodes.forEach(nid=>{
+      const node = N[nid]; if(!node) return;
+      const learned = state.visited.has(nid);
+      html += `<li style="${learned?'':'opacity:.4'}"><span class="fin-num">${num}.</span><div><div class="fin-nm">${node.concept}${learned?'':'  ·  not visited'}</div><div class="fin-sm">${node.csum}</div></div></li>`;
+      num++;
+    });
+  });
+  html += '</ul>';
+  document.getElementById('finBox').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+load();
+updateHUD();
+</script>
+</body>
+</html>
